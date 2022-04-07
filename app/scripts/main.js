@@ -2,12 +2,16 @@
 loadWebp('./images/1.webp');
 
 function loadWebp(url) {
+  let $time = $('#time');
   fetch(url)
     .then(data => data.arrayBuffer())
     .then(buffer => {
       let array = new Uint8Array(buffer);
       // console.time('start decode1')
-      let pixelData = webPDecoder(array);
+      let start = window.performance.now();
+      let {pixelData, imgWidth, imgHeight} = webPDecoder(array);
+      let end = window.performance.now();
+
       // console.timeEnd('start decode1')
       // console.log(pixelData);
       /**
@@ -17,19 +21,25 @@ function loadWebp(url) {
        console.timeEnd('start decode')
        drawWebP(reader.getData())
        */
-      drawWebP(pixelData)
+      drawWebP(pixelData, imgWidth, imgHeight)
 
-      drawCornerstone(pixelData)
+      drawCornerstone(pixelData, imgWidth, imgHeight)
+      $time.text(~~(end - start));
 
     });
-
 }
 
-function drawCornerstone(pixelArray) {
+let flag = 0;
+$('#toggle').click(() => {
+  flag++;
+  let index = flag%2;
+  let urls = ['./images/1.webp', './images/test2.webp']
+  loadWebp(urls[index]);
+})
+
+function drawCornerstone(pixelArray, width, height) {
   let obj = document.getElementById('cn');
   cornerstone.enable(obj);
-  let width = 550;
-  let height = 368;
   let signed = 0;
   let rescale_intercept = 1;
   let invert = false;
@@ -55,19 +65,20 @@ function drawCornerstone(pixelArray) {
     slope: rescale_slope,
     windowCenter: window_center,
     windowWidth: window_width,
-    getPixelData: function() {
+    getPixelData: function () {
       return pixelArray;
     }
   };
   cornerstone.displayImage(obj, cornerstoneMetaData)
+  cornerstone.updateImage(obj, true);
 }
 
-function drawWebP(pixelData) {
+function drawWebP(pixelData, imgWidth, imgHeight) {
   let canvas = document.getElementById('canvas');
   var ctx = canvas.getContext('2d');
 
   let pixels = new Uint8ClampedArray(pixelData);
-  let imageData = new ImageData(pixels, 550, 368);
+  let imageData = new ImageData(pixels, imgWidth, imgHeight);
   ctx.putImageData(imageData, 0, 0);
 }
 
@@ -145,7 +156,7 @@ function webPDecoder(array) {
         }
       }
     }
-    return pixelData;
+    return {pixelData, imgHeight, imgWidth};
   }
 }
 

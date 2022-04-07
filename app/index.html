@@ -24,9 +24,17 @@
     <![endif]-->
     <div class="container">
       <div class="d-flex">
-        <div class="card-img"><canvas id="canvas" width="550" height="368"></canvas></div>
-        <div class="card-img cn" id="cn"></div>
+        <div class="card-wrap">
+          <div class="card-img"><canvas id="canvas" width="550" height="368"></canvas></div>
+        </div>
+        <div class="card-wrap">
+          <div class="card-img cn" id="cn"></div>
+        </div>
       </div>
+      <div class="">
+        <button id="toggle" class="btn btn-primary btn-sm">加载测试</button>
+      </div>
+      <div class="text-muted">WebP 解码时间<em id="time">0</em>sm</div>
     </div>
 
     <!-- build:js scripts/vendor.js -->
