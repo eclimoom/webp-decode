@@ -23,9 +23,9 @@
       <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
     <![endif]-->
     <div class="container">
-      <div class="row">
-        <div class="col-5"><canvas></canvas></div>
-        <div class="col-5"><img src="images/test1.webp" alt=""></div>
+      <div class="d-flex">
+        <div class="card-img"><canvas id="canvas" width="550" height="368"></canvas></div>
+<!--        <div class="col-5"><img src="images/test1.webp" alt=""></div>-->
       </div>
 
     </div>
@@ -34,6 +34,7 @@
     <script type="text/javascript" src="/node_modules/jquery/dist/jquery.min.js"></script>
     <!-- endbuild -->
     <!-- build:js scripts/main.js -->
+    <script src="scripts/libwebp-0.6.0.min.js"></script>
     <script src="scripts/main.js"></script>
     <!-- endbuild -->
   </body>
