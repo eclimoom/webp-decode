@@ -11,6 +11,11 @@ body {
   padding-bottom: 1.5rem;
 }
 .card-img{
+  border: 1px solid #f0f0f0;
+  padding: 0;
+  width: 550px;
+  height: 368px;
+  box-sizing: content-box;
   canvas{
     width: 550px;
     height: 368px;

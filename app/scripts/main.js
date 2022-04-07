@@ -1,4 +1,3 @@
-
 // 加载图像
 loadWebp('./images/1.webp');
 
@@ -7,8 +6,69 @@ function loadWebp(url) {
     .then(data => data.arrayBuffer())
     .then(buffer => {
       let array = new Uint8Array(buffer);
-      webPDecoder(array);
-    })
+      // console.time('start decode1')
+      let pixelData = webPDecoder(array);
+      // console.timeEnd('start decode1')
+      // console.log(pixelData);
+      /**
+       * use WebPDecoder
+       console.time('start decode')
+       var reader = new WebPDecoder(array, false);
+       console.timeEnd('start decode')
+       drawWebP(reader.getData())
+       */
+      drawWebP(pixelData)
+
+      drawCornerstone(pixelData)
+
+    });
+
+}
+
+function drawCornerstone(pixelArray) {
+  let obj = document.getElementById('cn');
+  cornerstone.enable(obj);
+  let width = 550;
+  let height = 368;
+  let signed = 0;
+  let rescale_intercept = 1;
+  let invert = false;
+  let window_center = 128;
+  let window_width = 256;
+  let rescale_slope = 1;
+  let cornerstoneMetaData = {
+    color: true,
+    columnPixelSpacing: 1,
+    rowPixelSpacing: 1,
+    columns: width,
+    rows: height,
+    originalWidth: width,
+    originalHeight: height,
+    width,
+    height,
+    intercept: rescale_intercept,
+    invert: !!invert,
+    isSigned: !!signed,
+    maxPixelValue: 255,
+    minPixelValue: 0,
+    sizeInBytes: pixelArray.byteLength,
+    slope: rescale_slope,
+    windowCenter: window_center,
+    windowWidth: window_width,
+    getPixelData: function() {
+      return pixelArray;
+    }
+  };
+  cornerstone.displayImage(obj, cornerstoneMetaData)
+}
+
+function drawWebP(pixelData) {
+  let canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+
+  let pixels = new Uint8ClampedArray(pixelData);
+  let imageData = new ImageData(pixels, 550, 368);
+  ctx.putImageData(imageData, 0, 0);
 }
 
 function webPDecoder(array) {
@@ -25,7 +85,7 @@ function webPDecoder(array) {
   let imgWidth;
   let imgHeight;
   let blend = false;
-  // 获取图像大小
+  // todo parse header data 获取图像大小
   if (header) {
     header['loop_counter'] = header['loop_count'];
     imgHeight = header['canvas_height'];
@@ -42,7 +102,9 @@ function webPDecoder(array) {
     let frame = frames[f];
     let height = [0];
     let width = [0];
+    console.time('decoder');
     let rgba = decoder.WebPDecodeRGBA(array, frame['src_off'], frame['src_size'], width, height);
+    console.timeEnd('decoder');
     frame['rgba'] = rgba;
     frame['imgwidth'] = width[0];
     frame['imgheight'] = height[0];
@@ -60,10 +122,11 @@ function webPDecoder(array) {
       //     oldimagedata[i]=oldimagedata_.data[i];
       // }
     }
+
     let byteLength = imgWidth * imgHeight * 4;
     // rgba to pixel data
     if ((framesLength == 1 && typeof frame['blend'] === 'undefined') || frame['blend']) {
-      pixelData = [...rgba.slice(0, byteLength)];
+      pixelData = rgba.slice(0, byteLength);
     } else {
       console.log('webp format not support, need adapter it.')
       pixelData = new Uint8ClampedArray(byteLength)
@@ -82,18 +145,10 @@ function webPDecoder(array) {
         }
       }
     }
-    drawWebP(pixelData);
+    return pixelData;
   }
 }
 
-function drawWebP(pixelData) {
-  let canvas = document.getElementById('canvas');
-  var ctx = canvas.getContext('2d');
-
-  let pixels = new Uint8ClampedArray(pixelData);
-  let imageData = new ImageData(pixels, 550, 368);
-  ctx.putImageData(imageData, 0, 0);
-}
 
 function WebPRiffParser(src, src_off) {
 
@@ -105,26 +160,27 @@ function WebPRiffParser(src, src_off) {
   imagearray['frames'] = [];
   if (memcmp(src, src_off, 'RIFF', 4)) return;
   src_off += 4;
-  let riff_size = GetLE32(src, src_off) + 8;
+  // let riff_size = GetLE32(src, src_off) + 8;
   src_off += 8;
 
   while (src_off < src.length) {
-    var fourcc = GetTag(src, src_off);
+    let fourcc = GetTag(src, src_off);
     src_off += 4;
 
-    var payload_size = GetLE32(src, src_off);
+    let payload_size = GetLE32(src, src_off);
     src_off += 4;
-    var payload_size_padded = payload_size + (payload_size & 1);
+    let payload_size_padded = payload_size + (payload_size & 1);
 
+    let obj;
     switch (fourcc) {
       case 'VP8 ':
       case 'VP8L':
         if (typeof imagearray['frames'][i] === 'undefined') imagearray['frames'][i] = {};
-        var obj = imagearray['frames'][i];
-        var height = [0];
-        var width = [0];
+        obj = imagearray['frames'][i];
         obj['src_off'] = alpha_chunk ? alpha_offset : src_off - 8;
         obj['src_size'] = alpha_size + payload_size + 8;
+        // var height = [0];
+        // var width = [0];
         //var rgba = webpdecoder.WebPDecodeRGBA(src,(alpha_chunk?alpha_offset:src_off-8),alpha_size+payload_size+8,width,height);
         //imagearray[i]={'rgba':rgba,'width':width[0],'height':height[0]};
         i++;
@@ -135,12 +191,12 @@ function WebPRiffParser(src, src_off) {
         }
         break;
       case 'VP8X':
-        var obj = imagearray['header'] = {};
-        var feature_flags = obj['feature_flags'] = src[src_off];
-        var src_off_ = src_off + 4;
-        var canvas_width = obj['canvas_width'] = 1 + GetLE24(src, src_off_);
+        obj = imagearray['header'] = {};
+        obj['feature_flags'] = src[src_off];
+        let src_off_ = src_off + 4;
+        obj['canvas_width'] = 1 + GetLE24(src, src_off_);
         src_off_ += 3;
-        var canvas_height = obj['canvas_height'] = 1 + GetLE24(src, src_off_);
+        obj['canvas_height'] = 1 + GetLE24(src, src_off_);
         src_off_ += 3;
         break;
       case 'ALPH':
@@ -150,16 +206,15 @@ function WebPRiffParser(src, src_off) {
         break;
 
       case 'ANIM':
-        var obj = imagearray['header'];
-        var bgcolor = obj['bgcolor'] = GetLE32(src, src_off);
+        obj = imagearray['header'];
+        obj['bgcolor'] = GetLE32(src, src_off);
         src_off_ = src_off + 4;
-
-        var loop_count = obj['loop_count'] = GetLE16(src, src_off_);
+        obj['loop_count'] = GetLE16(src, src_off_);
         src_off_ += 2;
         break;
       case 'ANMF':
-        var offset_x = 0, offset_y = 0, width = 0, height = 0, duration = 0, blend = 0, dispose = 0, temp = 0;
-        var obj = imagearray['frames'][i] = {};
+        let offset_x = 0, offset_y = 0, width = 0, height = 0, duration = 0, blend = 0, dispose = 0, temp = 0;
+        obj = imagearray['frames'][i] = {};
         obj['offset_x'] = offset_x = 2 * GetLE24(src, src_off);
         src_off += 3;
         obj['offset_y'] = offset_y = 2 * GetLE24(src, src_off);
@@ -183,15 +238,15 @@ function WebPRiffParser(src, src_off) {
 }
 
 function memcmp(data, data_off, str, size) {
-  for (var i = 0; i < size; i++)
+  for (let i = 0; i < size; i++)
     if (data[data_off + i] != str.charCodeAt(i))
       return true;
   return false;
 }
 
 function GetTag(data, data_off) {
-  var str = '';
-  for (var i = 0; i < 4; i++)
+  let str = '';
+  for (let i = 0; i < 4; i++)
     str += String.fromCharCode(data[data_off++]);
   return str;
 }
