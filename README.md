@@ -16,3 +16,6 @@ libwebp-0.6.0 JavaScript   / libwebpjs - the libwebp implementation in JavaScrip
 #### 使用说明
 
 1.  npm start
+
+
+![输入图片说明](app/images/image.png)
